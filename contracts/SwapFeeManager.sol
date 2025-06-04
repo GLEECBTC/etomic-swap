@@ -10,9 +10,6 @@ contract SwapFeeManager {
     address public immutable dexFeeWallet;
     address public immutable burnFeeWallet;
 
-    uint256 private constant BURN_FEE_PERCENT = 25;
-    uint256 private constant TOTAL_PERCENT = 100;
-
     // address(0) for ETH
     event FeesSplit(
         address indexed token,
@@ -44,8 +41,9 @@ contract SwapFeeManager {
         uint256 totalBalance = address(this).balance;
         require(totalBalance > 0, "No fees to split");
 
-        uint256 burnFeeAmount = (totalBalance * BURN_FEE_PERCENT) /
-            TOTAL_PERCENT;
+        // Calculate 25% of the balance using bit shift
+        uint256 burnFeeAmount = totalBalance >> 2;
+        // Calculate the remaining 75% for DEX fee
         uint256 dexFeeAmount = totalBalance - burnFeeAmount;
 
         emit FeesSplit(address(0), dexFeeAmount, burnFeeAmount);
@@ -65,8 +63,9 @@ contract SwapFeeManager {
         uint256 totalBalance = token.balanceOf(address(this));
         require(totalBalance > 0, "No token fees to split");
 
-        uint256 burnFeeAmount = (totalBalance * BURN_FEE_PERCENT) /
-            TOTAL_PERCENT;
+        // Calculate 25% of the balance using bit shift
+        uint256 burnFeeAmount = totalBalance >> 2;
+        // Calculate the remaining 75% for DEX fee
         uint256 dexFeeAmount = totalBalance - burnFeeAmount;
 
         emit FeesSplit(tokenAddress, dexFeeAmount, burnFeeAmount);
