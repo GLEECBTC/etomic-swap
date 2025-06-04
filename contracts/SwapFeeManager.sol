@@ -13,7 +13,12 @@ contract SwapFeeManager {
     uint256 private constant BURN_FEE_PERCENT = 25;
     uint256 private constant TOTAL_PERCENT = 100;
 
-    event FeesSplit(uint256 dexFeeAmount, uint256 burnFeeAmount);
+    // address(0) for ETH
+    event FeesSplit(
+        address indexed token,
+        uint256 dexFeeAmount,
+        uint256 burnFeeAmount
+    );
 
     constructor(address _dexFeeWallet, address _burnFeeWallet) {
         require(
@@ -43,7 +48,7 @@ contract SwapFeeManager {
             TOTAL_PERCENT;
         uint256 dexFeeAmount = totalBalance - burnFeeAmount;
 
-        emit FeesSplit(dexFeeAmount, burnFeeAmount);
+        emit FeesSplit(address(0), dexFeeAmount, burnFeeAmount);
 
         payable(dexFeeWallet).transfer(dexFeeAmount);
         payable(burnFeeWallet).transfer(burnFeeAmount);
@@ -64,7 +69,7 @@ contract SwapFeeManager {
             TOTAL_PERCENT;
         uint256 dexFeeAmount = totalBalance - burnFeeAmount;
 
-        emit FeesSplit(dexFeeAmount, burnFeeAmount);
+        emit FeesSplit(tokenAddress, dexFeeAmount, burnFeeAmount);
 
         token.safeTransfer(dexFeeWallet, dexFeeAmount);
         token.safeTransfer(burnFeeWallet, burnFeeAmount);
