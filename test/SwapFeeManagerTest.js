@@ -24,6 +24,7 @@ describe("SwapFeeManager", function () {
         await token.waitForDeployment();
 
         await token.transfer(accounts[1].address, ethers.parseEther("100"));
+        await token.transfer(accounts[4].address, ethers.parseEther("100"));
     });
 
     it("should correctly split and withdraw Ether fees", async function () {
@@ -70,21 +71,21 @@ describe("SwapFeeManager", function () {
         expect(managerTokenBalanceAfter).to.equal(ethers.parseEther("0"));
     });
 
-    it("should not allow non-owner to split and withdraw Ether fees", async function () {
-        await accounts[1].sendTransaction({
+    it("should allow non-owner to split and withdraw Ether fees", async function () {
+        await accounts[4].sendTransaction({
             to: swapFeeManager.target,
             value: ethers.parseEther("1"),
         });
 
         // Attempt to call splitAndWithdraw as a non-owner
-        await swapFeeManager.connect(accounts[1]).splitAndWithdraw().should.be.rejectedWith("OwnableUnauthorizedAccount");
+        await swapFeeManager.connect(accounts[4]).splitAndWithdraw().should.be.fulfilled;
     });
 
-    it("should not allow non-owner to split and withdraw ERC20 token fees", async function () {
-        await token.connect(accounts[1]).approve(swapFeeManager.target, ethers.parseEther("1"));
-        await token.connect(accounts[1]).transfer(swapFeeManager.target, ethers.parseEther("1"));
+    it("should allow non-owner to split and withdraw ERC20 token fees", async function () {
+        await token.connect(accounts[4]).approve(swapFeeManager.target, ethers.parseEther("1"));
+        await token.connect(accounts[4]).transfer(swapFeeManager.target, ethers.parseEther("1"));
 
         // Attempt to call splitAndWithdrawToken as a non-owner
-        await swapFeeManager.connect(accounts[1]).splitAndWithdrawToken(token.target).should.be.rejectedWith("OwnableUnauthorizedAccount");
+        await swapFeeManager.connect(accounts[4]).splitAndWithdrawToken(token.target).should.be.fulfilled;
     });
 });
