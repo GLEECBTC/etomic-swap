@@ -1,7 +1,7 @@
 require("@nomicfoundation/hardhat-ethers");
 
 module.exports = {
-  solidity: "0.8.20",
+  solidity: "0.8.30",
   networks: {
     hardhat: {
       chainId: 1337, // or another number that Remix will accept
