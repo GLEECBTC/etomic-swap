@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.30;
+pragma solidity ^0.8.33;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -9,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 contract EtomicSwap is ERC165, IERC1155Receiver, IERC721Receiver {
+    using SafeERC20 for IERC20;
     enum PaymentState {
         Uninitialized,
         PaymentSent,
@@ -65,8 +67,9 @@ contract EtomicSwap is ERC165, IERC1155Receiver, IERC721Receiver {
         address receiver,
         bytes20 secretHash,
         uint64 lockTime
-    ) external payable {
+    ) external {
         require(receiver != address(0), "Receiver cannot be the zero address");
+        require(tokenAddress != address(0), "Token address cannot be zero");
         require(amount > 0, "Payment amount must be greater than 0");
         require(
             payments[id].state == PaymentState.Uninitialized,
@@ -89,12 +92,7 @@ contract EtomicSwap is ERC165, IERC1155Receiver, IERC721Receiver {
         emit PaymentSent(id);
 
         // Now performing the external interaction
-        IERC20 token = IERC20(tokenAddress);
-        // Ensure that the token transfer from the sender to the contract is successful
-        require(
-            token.transferFrom(msg.sender, address(this), amount),
-            "ERC20 transfer failed: Insufficient balance or allowance"
-        );
+        IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function receiverSpend(
@@ -130,11 +128,7 @@ contract EtomicSwap is ERC165, IERC1155Receiver, IERC721Receiver {
         if (tokenAddress == address(0)) {
             payable(msg.sender).transfer(amount);
         } else {
-            IERC20 token = IERC20(tokenAddress);
-            require(
-                token.transfer(msg.sender, amount),
-                "ERC20 transfer failed: Contract may lack balance or token transfer was rejected"
-            );
+            IERC20(tokenAddress).safeTransfer(msg.sender, amount);
         }
     }
 
@@ -247,8 +241,7 @@ contract EtomicSwap is ERC165, IERC1155Receiver, IERC721Receiver {
         if (tokenAddress == address(0)) {
             payable(msg.sender).transfer(amount);
         } else {
-            IERC20 token = IERC20(tokenAddress);
-            require(token.transfer(msg.sender, amount));
+            IERC20(tokenAddress).safeTransfer(msg.sender, amount);
         }
     }
 
