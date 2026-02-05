@@ -62,3 +62,5 @@ merge
 
 artifacts
 cache
+
+ignition/deployments/
