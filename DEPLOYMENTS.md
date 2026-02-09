@@ -14,6 +14,9 @@ Same address on every EVM chain via deterministic CREATE2 deployment.
 |-------|----------|---------|----------|
 | Ethereum | 1 | `0xd78d0b7138fb1657da3d61e4db664d08b85fbcbb92ebf457cc8e3fa1f4d45a5c` | [etherscan.io](https://etherscan.io/address/0x61EEC68Cf64d1b31e41EA713356De2563fB6D3F1#code) |
 | Sepolia (testnet) | 11155111 | `0x0ce7879bdb6546e1a806bab1a8c09f990622bab69ae252cb79c5a04418a4150b` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x61EEC68Cf64d1b31e41EA713356De2563fB6D3F1#code) |
+| GLEEC testnet | 11169 | `0x7b4c6ba0a553ed83f5f2c9149ed03bdb1e1de28577a358ffd883f741db472307` | [explorer.gleec.dev](https://explorer.gleec.dev/address/0x51d9EfFc20F6965bc8DFD37E797ac52a72fcdb9D) |
+
+> **Note:** GLEEC testnet uses a non-CREATE2 deployment (address `0x51d9EfFc20F6965bc8DFD37E797ac52a72fcdb9D`) because CreateX is not available on this chain.
 
 ## Deployment Steps
 

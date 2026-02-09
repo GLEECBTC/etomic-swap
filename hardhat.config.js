@@ -49,12 +49,13 @@ module.exports = {
       accounts: DEPLOYER_PRIVATE_KEY ? [DEPLOYER_PRIVATE_KEY] : undefined,
     },
 
-    // ============ TESTNETS (5) ============
+    // ============ TESTNETS (6) ============
     sepolia: networkConfig(11155111, "SEPOLIA_RPC_URL"),
     bscTestnet: networkConfig(97, "BSC_TESTNET_RPC_URL"),
     polygonMumbai: networkConfig(80001, "POLYGON_MUMBAI_RPC_URL"),
     avalancheFujiTestnet: networkConfig(43113, "AVALANCHE_TESTNET_RPC_URL"),
     ftmTestnet: networkConfig(4002, "FANTOM_TESTNET_RPC_URL"),
+    gleecTestnet: networkConfig(11169, "GLEEC_TESTNET_RPC_URL"),
 
     // ============ MAINNETS (17) ============
     mainnet: networkConfig(1, "MAINNET_RPC_URL"),
@@ -97,6 +98,14 @@ module.exports = {
         urls: {
           apiURL: "https://explorer.energyweb.org/api",
           browserURL: "https://explorer.energyweb.org",
+        },
+      },
+      {
+        network: "gleecTestnet",
+        chainId: 11169,
+        urls: {
+          apiURL: "https://explorer.gleec.dev/api",
+          browserURL: "https://explorer.gleec.dev",
         },
       },
     ],
