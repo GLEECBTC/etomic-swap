@@ -1,24 +1,31 @@
 {
   "name": "ETOMIC_SWAP",
-  "version": "1.0.0",
-  "description": "Etomic swap smart contract and helpers",
+  "version": "1.1.0",
+  "description": "Etomic swap smart contracts and helpers",
   "main": "index.js",
   "scripts": {
-    "rpc": "node startRPC.js",
-    "test": "truffle test",
-    "merge": "node node_modules/sol-merger/bin/sol-merger.js './contracts/*.sol' ./merge"
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "deploy:v1": "npx hardhat ignition deploy ignition/modules/EtomicSwapV1.js --strategy create2 --verify",
+    "deploy:v1:sepolia": "npx hardhat ignition deploy ignition/modules/EtomicSwapV1.js --network sepolia --strategy create2 --verify",
+    "deploy:v1:mainnet": "npx hardhat ignition deploy ignition/modules/EtomicSwapV1.js --network mainnet --strategy create2 --verify",
+    "verify:salt": "node scripts/verify-createx-create2.mjs"
   },
-  "author": "ortgma@gmail.com",
   "license": "ISC",
   "dependencies": {
-    "chai": "^4.1.2",
+    "@openzeppelin/contracts": "^5.4.0"
+  },
+  "devDependencies": {
+    "hardhat": "^2.26.0",
+    "@nomicfoundation/hardhat-ethers": "^3.1.0",
+    "@nomicfoundation/hardhat-ignition": "^0.15.16",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.16",
+    "@nomicfoundation/ignition-core": "^0.15.15",
+    "@nomicfoundation/hardhat-verify": "^2.0.13",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.14.0",
+    "chai": "^4.3.10",
     "chai-as-promised": "^7.1.1",
-    "ganache-cli": "^6.2.5",
-    "openzeppelin-solidity": "https://github.com/OpenZeppelin/openzeppelin-solidity.git#release-v2.1.0-solc-0.5",
-    "request": "^2.83.0",
-    "request-promise-native": "^1.0.5",
-    "ripemd160": "^2.0.1",
-    "sol-merger": "^0.1.0",
-    "web3": "^1.0.0-beta.27"
+    "ripemd160": "^2.0.3"
   }
 }

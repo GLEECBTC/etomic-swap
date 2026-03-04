@@ -1,11 +1,16 @@
-pragma solidity ^0.5.0;
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.33;
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract EtomicSwap {
+    using SafeERC20 for IERC20;
+
     enum PaymentState {
         Uninitialized,
         PaymentSent,
-        ReceivedSpent,
+        ReceiverSpent,
         SenderRefunded
     }
 
@@ -15,125 +20,149 @@ contract EtomicSwap {
         PaymentState state;
     }
 
-    mapping (bytes32 => Payment) public payments;
+    mapping(bytes32 => Payment) public payments;
 
     event PaymentSent(bytes32 id);
     event ReceiverSpent(bytes32 id, bytes32 secret);
     event SenderRefunded(bytes32 id);
 
-    constructor() public { }
+    constructor() {}
 
     function ethPayment(
-        bytes32 _id,
-        address _receiver,
-        bytes20 _secretHash,
-        uint64 _lockTime
+        bytes32 id,
+        address receiver,
+        bytes20 secretHash,
+        uint64 lockTime
     ) external payable {
-        require(_receiver != address(0) && msg.value > 0 && payments[_id].state == PaymentState.Uninitialized);
-
-        bytes20 paymentHash = ripemd160(abi.encodePacked(
-                _receiver,
-                msg.sender,
-                _secretHash,
-                address(0),
-                msg.value
-            ));
-
-        payments[_id] = Payment(
-            paymentHash,
-            _lockTime,
-            PaymentState.PaymentSent
+        require(receiver != address(0), "Receiver cannot be the zero address");
+        require(msg.value > 0, "Payment amount must be greater than 0");
+        require(
+            payments[id].state == PaymentState.Uninitialized,
+            "ETH payment already initialized"
         );
 
-        emit PaymentSent(_id);
+        bytes20 paymentHash = ripemd160(
+            abi.encodePacked(
+                receiver,
+                msg.sender,
+                secretHash,
+                address(0),
+                msg.value
+            )
+        );
+
+        payments[id] = Payment(paymentHash, lockTime, PaymentState.PaymentSent);
+
+        emit PaymentSent(id);
     }
 
     function erc20Payment(
-        bytes32 _id,
-        uint256 _amount,
-        address _tokenAddress,
-        address _receiver,
-        bytes20 _secretHash,
-        uint64 _lockTime
-    ) external payable {
-        require(_receiver != address(0) && _amount > 0 && payments[_id].state == PaymentState.Uninitialized);
-
-        bytes20 paymentHash = ripemd160(abi.encodePacked(
-                _receiver,
-                msg.sender,
-                _secretHash,
-                _tokenAddress,
-                _amount
-            ));
-
-        payments[_id] = Payment(
-            paymentHash,
-            _lockTime,
-            PaymentState.PaymentSent
+        bytes32 id,
+        uint256 amount,
+        address tokenAddress,
+        address receiver,
+        bytes20 secretHash,
+        uint64 lockTime
+    ) external {
+        require(receiver != address(0), "Receiver cannot be the zero address");
+        require(tokenAddress != address(0), "Token address cannot be zero");
+        require(amount > 0, "Payment amount must be greater than 0");
+        require(
+            payments[id].state == PaymentState.Uninitialized,
+            "ERC20 payment already initialized"
         );
 
-        IERC20 token = IERC20(_tokenAddress);
-        require(token.transferFrom(msg.sender, address(this), _amount));
-        emit PaymentSent(_id);
+        bytes20 paymentHash = ripemd160(
+            abi.encodePacked(
+                receiver,
+                msg.sender,
+                secretHash,
+                tokenAddress,
+                amount
+            )
+        );
+
+        payments[id] = Payment(paymentHash, lockTime, PaymentState.PaymentSent);
+
+        // Emitting the event before making the external call
+        emit PaymentSent(id);
+
+        // Now performing the external interaction
+        IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function receiverSpend(
-        bytes32 _id,
-        uint256 _amount,
-        bytes32 _secret,
-        address _tokenAddress,
-        address _sender
+        bytes32 id,
+        uint256 amount,
+        bytes32 secret,
+        address tokenAddress,
+        address sender
     ) external {
-        require(payments[_id].state == PaymentState.PaymentSent);
-
-        bytes20 paymentHash = ripemd160(abi.encodePacked(
+        // Checks
+        require(
+            payments[id].state == PaymentState.PaymentSent,
+            "Invalid payment state. Must be PaymentSent"
+        );
+        bytes20 paymentHash = ripemd160(
+            abi.encodePacked(
                 msg.sender,
-                _sender,
-                ripemd160(abi.encodePacked(sha256(abi.encodePacked(_secret)))),
-                _tokenAddress,
-                _amount
-            ));
+                sender,
+                ripemd160(abi.encodePacked(sha256(abi.encodePacked(secret)))),
+                tokenAddress,
+                amount
+            )
+        );
+        require(paymentHash == payments[id].paymentHash, "Invalid paymentHash");
 
-        require(paymentHash == payments[_id].paymentHash);
-        payments[_id].state = PaymentState.ReceivedSpent;
-        if (_tokenAddress == address(0)) {
-            msg.sender.transfer(_amount);
+        // Effects
+        payments[id].state = PaymentState.ReceiverSpent;
+
+        // Event Emission
+        emit ReceiverSpent(id, secret);
+
+        // Interactions
+        if (tokenAddress == address(0)) {
+            payable(msg.sender).transfer(amount);
         } else {
-            IERC20 token = IERC20(_tokenAddress);
-            require(token.transfer(msg.sender, _amount));
+            IERC20(tokenAddress).safeTransfer(msg.sender, amount);
         }
-
-        emit ReceiverSpent(_id, _secret);
     }
 
     function senderRefund(
-        bytes32 _id,
-        uint256 _amount,
-        bytes20 _paymentHash,
-        address _tokenAddress,
-        address _receiver
+        bytes32 id,
+        uint256 amount,
+        bytes20 secretHash,
+        address tokenAddress,
+        address receiver
     ) external {
-        require(payments[_id].state == PaymentState.PaymentSent);
+        require(
+            payments[id].state == PaymentState.PaymentSent,
+            "Invalid payment state. Must be PaymentSent"
+        );
 
-        bytes20 paymentHash = ripemd160(abi.encodePacked(
-                _receiver,
+        bytes20 paymentHash = ripemd160(
+            abi.encodePacked(
+                receiver,
                 msg.sender,
-                _paymentHash,
-                _tokenAddress,
-                _amount
-            ));
+                secretHash,
+                tokenAddress,
+                amount
+            )
+        );
+        require(paymentHash == payments[id].paymentHash, "Invalid paymentHash");
+        require(
+            block.timestamp >= payments[id].lockTime,
+            "Current timestamp didn't exceed payment lock time"
+        );
 
-        require(paymentHash == payments[_id].paymentHash && now >= payments[_id].lockTime);
+        payments[id].state = PaymentState.SenderRefunded;
 
-        payments[_id].state = PaymentState.SenderRefunded;
+        emit SenderRefunded(id);
 
-        if (_tokenAddress == address(0)) {
-            msg.sender.transfer(_amount);
+        if (tokenAddress == address(0)) {
+            payable(msg.sender).transfer(amount);
         } else {
-            IERC20 token = IERC20(_tokenAddress);
-            require(token.transfer(msg.sender, _amount));
+            IERC20(tokenAddress).safeTransfer(msg.sender, amount);
         }
-
-        emit SenderRefunded(_id);
     }
 }
