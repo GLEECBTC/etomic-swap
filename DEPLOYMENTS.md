@@ -14,9 +14,10 @@ Same address on every EVM chain via deterministic CREATE2 deployment.
 |-------|----------|---------|----------|
 | Ethereum | 1 | `0xd78d0b7138fb1657da3d61e4db664d08b85fbcbb92ebf457cc8e3fa1f4d45a5c` | [etherscan.io](https://etherscan.io/address/0x61EEC68Cf64d1b31e41EA713356De2563fB6D3F1#code) |
 | Sepolia (testnet) | 11155111 | `0x0ce7879bdb6546e1a806bab1a8c09f990622bab69ae252cb79c5a04418a4150b` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x61EEC68Cf64d1b31e41EA713356De2563fB6D3F1#code) |
-| GLEEC testnet | 11169 | `0x7b4c6ba0a553ed83f5f2c9149ed03bdb1e1de28577a358ffd883f741db472307` | [explorer.gleec.dev](https://explorer.gleec.dev/address/0x51d9EfFc20F6965bc8DFD37E797ac52a72fcdb9D) |
+| Gnosis | 100 | `0x314c35376fe1a1a60280e3d277efb595aca4e2a205d390077caa54e9859cce65` | [gnosisscan.io](https://gnosisscan.io/address/0x61EEC68Cf64d1b31e41EA713356De2563fB6D3F1#code) |
+| GLEEC | 11169 | `0x6754c145246aad97a3295e11005497e29dc35740c98e1a63144491e08bbd1b60` | [evm-explorer.gleec.com](https://evm-explorer.gleec.com/address/0x51d9EfFc20F6965bc8DFD37E797ac52a72fcdb9D) |
 
-> **Note:** GLEEC testnet uses a non-CREATE2 deployment (address `0x51d9EfFc20F6965bc8DFD37E797ac52a72fcdb9D`) because CreateX is not available on this chain.
+> **Note:** GLEEC uses a non-CREATE2 deployment at `0x51d9EfFc20F6965bc8DFD37E797ac52a72fcdb9D` because CreateX is not available on this chain. The address is `CREATE(deployer, nonce=0)`.
 
 ## Deployment Steps
 
@@ -51,7 +52,7 @@ Where `<network-name>` matches a key in `hardhat.config.js` `networks` (e.g., `b
 npx hardhat verify --network <network-name> 0x61EEC68Cf64d1b31e41EA713356De2563fB6D3F1
 ```
 
-For chains using Etherscan V2, the single `ETHERSCAN_API_KEY` works. For chains with custom explorers (KCC, EWC), see `customChains` in `hardhat.config.js`.
+For chains using Etherscan V2, the single `ETHERSCAN_API_KEY` works. For chains with custom Blockscout explorers (KCC, EWC, GLEEC), see `customChains` in `hardhat.config.js`. Note that `apiKey` must be configured as an **object** (per-network keys) rather than a string for `customChains` to take effect — `hardhat-verify` routes string-form `apiKey` through the Etherscan V2 endpoint and silently ignores `customChains`.
 
 ### Adding a new chain
 
@@ -95,3 +96,13 @@ For chains using Etherscan V2, the single `ETHERSCAN_API_KEY` works. For chains 
   - Byte 20: `0x00` (cross-chain mode — same address on all chains)
   - Bytes 21-31: mined entropy via [createXcrunch](https://github.com/pcaversaccio/createx-crunch)
 - **Previous V1 Contract** (no SafeERC20): `0x24ABE4c71FC658C91313b6552cd40cD808b3Ea80`
+
+### Reproducibility pins (do not change without redeploying)
+
+The canonical CREATE2 address depends on byte-exact creation bytecode. These compiler/dependency settings must remain pinned to reproduce `0x61EEC68C...`:
+
+- `@openzeppelin/contracts` — pinned to **exact `5.0.0`** in `package.json`. OZ 5.3.0+ ships a different `SafeERC20.sol` that produces different EtomicSwap bytecode.
+- `solidity.settings.evmVersion` — pinned to `"paris"` in `hardhat.config.js`. solc 0.8.33 defaults to a newer EVM target (PUSH0 etc.) that produces different bytecode.
+- `solidity.settings.optimizer.runs` — `10000`.
+
+If any of these change, every future CREATE2 deploy will land at a new address and break the "same address everywhere" invariant.
